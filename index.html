@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cloud Test Tracker</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
+
+    <style>
+        :root { --primary: #00b0ff; --bg: #121212; --surface: #1e1e1e; --text: #e0e0e0; --success: #00e676; --danger: #ff1744; --mains-color: #ff9800; }
+        
+        body { font-family: 'Segoe UI', sans-serif; background-color: var(--bg); color: var(--text); margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; min-height: 100vh; }
+        
+        .dashboard { display: grid; grid-template-columns: 300px 1fr; gap: 20px; width: 100%; max-width: 1200px; }
+        
+        /* Input Panel */
+        .input-panel { background-color: var(--surface); padding: 20px; border-radius: 12px; height: fit-content; border: 1px solid #333; }
+        h2 { margin-top: 0; color: var(--primary); }
+        label { display: block; margin-top: 10px; font-size: 0.9em; color: #aaa; }
+        input, select { width: 100%; padding: 10px; margin-top: 5px; background: #2c2c2c; border: 1px solid #444; color: white; border-radius: 6px; box-sizing: border-box; font-size: 16px; }
+        
+        button { width: 100%; padding: 12px; margin-top: 20px; background-color: var(--primary); color: black; font-weight: bold; border: none; border-radius: 6px; cursor: pointer; transition: 0.2s; }
+        button:hover { opacity: 0.9; }
+
+        /* Dashboard Panel */
+        .display-panel { display: flex; flex-direction: column; gap: 20px; }
+        
+        .tab-container { display: flex; gap: 10px; }
+        .tab-btn { flex: 1; background-color: var(--surface); color: #888; border: 2px solid transparent; padding: 10px; cursor: pointer; text-align: center; }
+        .tab-btn.active { background-color: var(--surface); color: white; border-bottom: 3px solid var(--primary); }
+        .tab-btn.active.mains-active { border-bottom: 3px solid var(--mains-color); }
+        
+        .charts-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
+        .chart-card { background-color: var(--surface); padding: 15px; border-radius: 12px; min-height: 300px; border: 1px solid #333; }
+        
+        .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+        .stat-card { background-color: var(--surface); padding: 20px; border-radius: 12px; text-align: center; border: 1px solid #333; }
+        .stat-value { font-size: 2em; font-weight: bold; }
+        
+        .history-container { background-color: var(--surface); padding: 20px; border-radius: 12px; margin-top: 20px; overflow-x: auto; border: 1px solid #333; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #333; }
+        th { color: #888; }
+        
+        .remove-row { color: #666; cursor: pointer; font-weight: bold; text-align: center; font-size: 1.2em; padding: 0 10px; }
+        .remove-row:hover { color: var(--danger); background: rgba(255, 23, 68, 0.1); border-radius: 4px; }
+        
+        #loader { text-align: center; padding: 20px; color: var(--primary); display: none; }
+        
+        /* UTILITY CLASSES */
+        .hidden { display: none !important; }
+        .btn-outline { background: transparent; border: 1px solid #444; color: #aaa; margin-top: 10px; }
+        .btn-outline:hover { background: #333; color: white; }
+
+        @media (max-width: 768px) { .dashboard { grid-template-columns: 1fr; } .stats-grid { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+
+    <h1 style="text-align: center;">☁️ Cloud Test Tracker</h1>
+
+    <div class="dashboard">
+        
+        <div class="input-panel">
+            <h2>Add Result</h2>
+            
+            <label>Exam Type</label>
+            <select id="examType" onchange="updateSubjects()">
+                <option value="pre">Pre (Preliminary)</option>
+                <option value="mains">Mains</option>
+            </select>
+
+            <label>Subject</label>
+            <select id="subjectSelect"></select>
+
+            <label>Test Name</label>
+            <input type="text" id="testName" placeholder="e.g., Mock 01">
+            
+            <label>Score</label>
+            <input type="number" id="myScore" placeholder="0">
+            
+            <label>Total Marks</label>
+            <input type="number" id="totalMarks" value="100">
+
+            <button onclick="addScoreToCloud()">Save to Cloud ☁️</button>
+            
+            <p style="text-align: center; color: #666; font-size: 0.8em; margin-top: 20px;">
+                Data is saved automatically to your Firebase account.
+            </p>
+        </div>
+
+        <div class="display-panel">
+            
+            <div class="tab-container">
+                <button class="tab-btn active" onclick="switchTab('pre')" id="tab-pre">Pre Dashboard</button>
+                <button class="tab-btn" onclick="switchTab('mains')" id="tab-mains">Mains Dashboard</button>
+            </div>
+
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-value" id="avg-score" style="color:var(--primary)">0%</div>
+                    <div class="stat-label">Average %</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="total-tests" style="color:white">0</div>
+                    <div class="stat-label">Tests</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="trend" style="color:gray">-</div>
+                    <div class="stat-label">Trend</div>
+                </div>
+            </div>
+
+            <div id="loader">Loading data from Google...</div>
+            <div id="charts-grid" class="charts-grid"></div>
+
+            <button id="toggleHistBtn" class="btn-outline" onclick="toggleHistory()">🔒 View Detailed History</button>
+
+            <div id="historySection" class="history-container hidden">
+                <h3>History</h3>
+                <table id="historyTable">
+                    <thead>
+                        <tr><th>Subject</th><th>Test</th><th>Score</th><th>%</th><th>Action</th></tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- 1. FIREBASE KEYS ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyD3FkIKeAb__QsJYk3CKiosLZb8IvT56Mg",
+            authDomain: "test-tracker-f9e01.firebaseapp.com",
+            projectId: "test-tracker-f9e01",
+            storageBucket: "test-tracker-f9e01.firebasestorage.app",
+            messagingSenderId: "573749875954",
+            appId: "1:573749875954:web:bf6d0438ab584299462c6b"
+        };
+
+        // --- 2. INITIALIZE FIREBASE ---
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+        }
+        const db = firebase.firestore();
+
+        // --- 3. APP VARIABLES ---
+        let testData = [];
+        let chartInstances = [];
+        let currentTab = 'pre';
+        
+        const subjects = {
+            pre: ["Full Mock", "Math", "English", "Reasoning"],
+            mains: ["Full Mock", "Math", "English", "GK", "Reasoning"]
+        };
+
+        const subjectColors = {
+            "Full Mock": { border: "#00b0ff", bg: "rgba(0, 176, 255, 0.1)" }, 
+            "Math": { border: "#ff4081", bg: "rgba(255, 64, 129, 0.1)" }, 
+            "English": { border: "#00e676", bg: "rgba(0, 230, 118, 0.1)" }
+        };
+
+        // --- 4. REAL-TIME LISTENER ---
+        function initApp() {
+            updateSubjects();
+            document.getElementById('loader').style.display = "block";
+            
+            db.collection("scores").orderBy("timestamp", "asc").onSnapshot((snapshot) => {
+                testData = [];
+                snapshot.forEach((doc) => {
+                    testData.push({ id: doc.id, ...doc.data() });
+                });
+                
+                document.getElementById('loader').style.display = "none";
+                updateUI(); 
+            }, (error) => {
+                console.error("Error getting documents: ", error);
+            });
+        }
+
+        // --- 5. TOGGLE HISTORY FUNCTION ---
+        function toggleHistory() {
+            const section = document.getElementById('historySection');
+            const btn = document.getElementById('toggleHistBtn');
+
+            if (section.classList.contains('hidden')) {
+                // It is hidden, ask for password to show
+                const pwd = prompt("Enter Password to view history:");
+                if (pwd === "admin") {
+                    section.classList.remove('hidden');
+                    btn.innerText = "🔓 Hide History";
+                    btn.style.borderColor = "var(--success)";
+                    btn.style.color = "var(--success)";
+                } else if (pwd !== null) {
+                    alert("Wrong Password");
+                }
+            } else {
+                // It is showing, hide it (no password needed to hide)
+                section.classList.add('hidden');
+                btn.innerText = "🔒 View Detailed History";
+                btn.style.borderColor = "#444";
+                btn.style.color = "#aaa";
+            }
+        }
+
+        // --- 6. ADD DATA TO CLOUD ---
+        function addScoreToCloud() {
+            const type = document.getElementById('examType').value;
+            const subject = document.getElementById('subjectSelect').value;
+            const name = document.getElementById('testName').value;
+            const score = parseFloat(document.getElementById('myScore').value);
+            const total = parseFloat(document.getElementById('totalMarks').value);
+
+            if (!name || isNaN(score)) { alert("Please fill details"); return; }
+            
+            const percentage = ((score / total) * 100).toFixed(2);
+
+            db.collection("scores").add({
+                type: type,
+                subject: subject,
+                name: name,
+                score: score,
+                total: total,
+                percentage: percentage,
+                timestamp: firebase.firestore.FieldValue.serverTimestamp()
+            })
+            .then(() => {
+                document.getElementById('testName').value = "";
+                document.getElementById('myScore').value = "";
+            })
+            .catch((error) => {
+                alert("Error saving: " + error.message);
+            });
+        }
+
+        // --- 7. DELETE SINGLE ROW ---
+        function deleteScore(docId) {
+            const pwd = prompt("Enter 'admin' to delete this score:");
+            if(pwd === "admin") {
+                db.collection("scores").doc(docId).delete();
+            } else if (pwd !== null) {
+                alert("Wrong password!");
+            }
+        }
+
+        // --- UI FUNCTIONS ---
+        function updateSubjects() {
+            const type = document.getElementById('examType').value;
+            const subSelect = document.getElementById('subjectSelect');
+            subSelect.innerHTML = ""; 
+            subjects[type].forEach(sub => {
+                const opt = document.createElement('option');
+                opt.value = sub; opt.innerText = sub;
+                subSelect.appendChild(opt);
+            });
+        }
+
+        function switchTab(type) {
+            currentTab = type;
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active', 'mains-active'));
+            const activeBtn = document.getElementById(`tab-${type}`);
+            activeBtn.classList.add('active');
+            if(type === 'mains') activeBtn.classList.add('mains-active');
+            updateUI();
+        }
+
+        function updateUI() {
+            const filteredData = testData.filter(item => item.type === currentTab);
+            const tbody = document.querySelector('#historyTable tbody');
+            tbody.innerHTML = '';
+            let totalPercent = 0;
+
+            filteredData.forEach(item => {
+                totalPercent += parseFloat(item.percentage);
+                const color = subjectColors[item.subject] ? subjectColors[item.subject].border : '#fff';
+                
+                const row = `<tr>
+                    <td style="color:${color}">${item.subject}</td>
+                    <td>${item.name}</td>
+                    <td>${item.score}/${item.total}</td>
+                    <td>${item.percentage}%</td>
+                    <td class="remove-row" onclick="deleteScore('${item.id}')">×</td>
+                </tr>`;
+                tbody.innerHTML += row;
+            });
+
+            const avg = filteredData.length ? (totalPercent / filteredData.length).toFixed(1) : 0;
+            document.getElementById('avg-score').innerText = avg + "%";
+            document.getElementById('total-tests').innerText = filteredData.length;
+            
+            if (filteredData.length >= 2) {
+                const diff = (filteredData[filteredData.length-1].percentage - filteredData[filteredData.length-2].percentage).toFixed(1);
+                const trendEl = document.getElementById('trend');
+                trendEl.innerText = (diff > 0 ? "▲ +" : "▼ ") + diff + "%";
+                trendEl.style.color = diff > 0 ? "#00e676" : "#ff1744";
+            } else { document.getElementById('trend').innerText = "-"; }
+
+            renderCharts(filteredData);
+        }
+
+        function renderCharts(data) {
+            chartInstances.forEach(c => c.destroy());
+            chartInstances = [];
+            const container = document.getElementById('charts-grid');
+            container.innerHTML = '';
+            
+            subjects[currentTab].forEach(sub => {
+                const subData = data.filter(d => d.subject === sub);
+                const color = subjectColors[sub] || { border: '#ccc', bg: 'rgba(200,200,200,0.1)' };
+
+                const card = document.createElement('div'); card.className = 'chart-card';
+                card.innerHTML = `<h3 style="text-align:center; color:${color.border}">${sub}</h3><div style="position:relative; height:250px"><canvas></canvas></div>`;
+                container.appendChild(card);
+
+                const ctx = card.querySelector('canvas').getContext('2d');
+                chartInstances.push(new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: subData.map(d => d.name),
+                        datasets: [{
+                            label: '%', data: subData.map(d => d.percentage),
+                            borderColor: color.border, backgroundColor: color.bg,
+                            fill: true, tension: 0.3
+                        }]
+                    },
+                    options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, max: 100, grid: {color:'#333'} }, x: { grid: {color:'#333'} } }, plugins: { legend: {display: false} } }
+                }));
+            });
+        }
+
+        window.onload = initApp;
+    </script>
+</body>
+</html>
