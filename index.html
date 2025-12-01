@@ -63,6 +63,7 @@
 
     <div class="dashboard">
         
+        <!-- INPUT FORM -->
         <div class="input-panel">
             <h2>Add Result</h2>
             
@@ -98,6 +99,7 @@
             <button onclick="addScoreToCloud()">Save Result 🔒</button>
         </div>
 
+        <!-- DASHBOARD -->
         <div class="display-panel">
             
             <div class="tab-container">
@@ -105,6 +107,7 @@
                 <button class="tab-btn" onclick="switchTab('mains')" id="tab-mains">Mains Dashboard</button>
             </div>
 
+            <!-- KEY STATS -->
             <div class="stats-grid">
                 <div class="stat-card">
                     <div class="stat-value" id="avg-score" style="color:var(--primary)">0%</div>
@@ -145,14 +148,14 @@
     </div>
 
     <script>
-        // --- 1. PASTE YOUR FIREBASE KEYS HERE ---
+        // --- 1. FIREBASE CONFIGURATION (YOUR KEYS INCLUDED) ---
         const firebaseConfig = {
-            apiKey: "PASTE_YOUR_KEY_HERE",
-            authDomain: "PASTE_HERE",
-            projectId: "PASTE_HERE",
-            storageBucket: "PASTE_HERE",
-            messagingSenderId: "PASTE_HERE",
-            appId: "PASTE_HERE"
+            apiKey: "AIzaSyD3FkIKeAb__QsJYk3CKiosLZb8IvT56Mg",
+            authDomain: "test-tracker-f9e01.firebaseapp.com",
+            projectId: "test-tracker-f9e01",
+            storageBucket: "test-tracker-f9e01.firebasestorage.app",
+            messagingSenderId: "573749875954",
+            appId: "1:573749875954:web:bf6d0438ab584299462c6b"
         };
 
         // --- 2. INITIALIZE FIREBASE ---
@@ -196,13 +199,13 @@
             });
         }
 
-        // --- 5. ADD DATA (UPDATED WITH PASSWORD) ---
+        // --- 5. ADD DATA (WITH PASSWORD PROTECTION) ---
         function addScoreToCloud() {
             // NEW: Password Check
             const pwd = prompt("Enter password to save data:");
             if (pwd !== "testbook") {
                 alert("Wrong password! Data not saved.");
-                return; // Stop here if password is wrong
+                return; 
             }
 
             const date = document.getElementById('testDate').value;
