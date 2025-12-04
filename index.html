@@ -44,8 +44,9 @@
         th, td { padding: 12px; text-align: left; border-bottom: 1px solid #333; }
         th { color: #888; }
         
-        /* Remarks Column Style */
+        /* Updated Table Columns */
         .remarks-cell { font-size: 0.85em; color: #aaa; max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .marks-cell { font-weight: bold; color: var(--primary); }
         
         .remove-row { color: #666; cursor: pointer; font-weight: bold; text-align: center; font-size: 1.2em; padding: 0 10px; }
         .remove-row:hover { color: var(--danger); background: rgba(255, 23, 68, 0.1); border-radius: 4px; }
@@ -63,7 +64,6 @@
 
     <div class="dashboard">
         
-        <!-- INPUT FORM -->
         <div class="input-panel">
             <h2>Add Result</h2>
             
@@ -99,7 +99,6 @@
             <button onclick="addScoreToCloud()">Save Result 🔒</button>
         </div>
 
-        <!-- DASHBOARD -->
         <div class="display-panel">
             
             <div class="tab-container">
@@ -107,7 +106,6 @@
                 <button class="tab-btn" onclick="switchTab('mains')" id="tab-mains">Mains Dashboard</button>
             </div>
 
-            <!-- KEY STATS -->
             <div class="stats-grid">
                 <div class="stat-card">
                     <div class="stat-value" id="avg-score" style="color:var(--primary)">0%</div>
@@ -136,6 +134,7 @@
                             <th>Date</th>
                             <th>Subject</th>
                             <th>Test</th>
+                            <th>Marks</th> <!-- New Column -->
                             <th>%</th>
                             <th>Remarks</th>
                             <th>Del</th>
@@ -148,7 +147,7 @@
     </div>
 
     <script>
-        // --- 1. FIREBASE CONFIGURATION (YOUR KEYS INCLUDED) ---
+        // --- 1. YOUR FIREBASE KEYS (FIXED) ---
         const firebaseConfig = {
             apiKey: "AIzaSyD3FkIKeAb__QsJYk3CKiosLZb8IvT56Mg",
             authDomain: "test-tracker-f9e01.firebaseapp.com",
@@ -167,7 +166,6 @@
         let chartInstances = [];
         let currentTab = 'pre';
         
-        // Set Today's date by default
         document.getElementById('testDate').valueAsDate = new Date();
 
         const subjects = {
@@ -175,10 +173,13 @@
             mains: ["Full Mock", "Math", "English", "GK", "Reasoning"]
         };
 
+        // UPDATED COLORS
         const subjectColors = {
             "Full Mock": { border: "#00b0ff", bg: "rgba(0, 176, 255, 0.1)" }, 
             "Math": { border: "#ff4081", bg: "rgba(255, 64, 129, 0.1)" }, 
-            "English": { border: "#00e676", bg: "rgba(0, 230, 118, 0.1)" }
+            "English": { border: "#00e676", bg: "rgba(0, 230, 118, 0.1)" },
+            "Reasoning": { border: "#FFD700", bg: "rgba(255, 215, 0, 0.1)" }, // Yellow
+            "GK": { border: "#FF0000", bg: "rgba(255, 0, 0, 0.1)" } // Red
         };
 
         // --- 4. REAL-TIME LISTENER ---
@@ -199,9 +200,8 @@
             });
         }
 
-        // --- 5. ADD DATA (WITH PASSWORD PROTECTION) ---
+        // --- 5. ADD DATA ---
         function addScoreToCloud() {
-            // NEW: Password Check
             const pwd = prompt("Enter password to save data:");
             if (pwd !== "testbook") {
                 alert("Wrong password! Data not saved.");
@@ -303,10 +303,12 @@
                 totalPercent += parseFloat(item.percentage);
                 const color = subjectColors[item.subject] ? subjectColors[item.subject].border : '#fff';
                 
+                // Added "Marks" Column Here
                 const row = `<tr>
                     <td style="color:#666; font-size:0.8em">${item.date}</td>
                     <td style="color:${color}">${item.subject}</td>
                     <td>${item.name}</td>
+                    <td class="marks-cell">${item.score} / ${item.total}</td>
                     <td>${item.percentage}%</td>
                     <td class="remarks-cell" title="${item.remarks || ''}">${item.remarks || '-'}</td>
                     <td class="remove-row" onclick="deleteScore('${item.id}')">×</td>
@@ -347,6 +349,8 @@
                     type: 'line',
                     data: {
                         labels: subData.map(d => d.name),
+                        // Pass FULL data object to access marks in tooltip
+                        raw_data: subData, 
                         datasets: [{
                             label: '%', data: subData.map(d => d.percentage),
                             borderColor: color.border, backgroundColor: color.bg,
@@ -359,6 +363,18 @@
                         scales: { y: { beginAtZero: true, max: 100, grid: {color:'#333'} }, x: { grid: {color:'#333'} } }, 
                         plugins: { 
                             legend: {display: false},
+                            
+                            // UPDATED TOOLTIP
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        // Get the raw data object for this point
+                                        const rawItem = context.chart.data.raw_data[context.dataIndex];
+                                        return `${context.raw}% | ${rawItem.score}/${rawItem.total} Marks`;
+                                    }
+                                }
+                            },
+
                             annotation: {
                                 annotations: {
                                     line1: {
