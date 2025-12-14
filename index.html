@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pro Cloud Tracker</title>
+    <title>Banker's Cloud Tracker</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
@@ -12,17 +12,87 @@
     <style>
         :root { --primary: #00b0ff; --bg: #121212; --surface: #1e1e1e; --text: #e0e0e0; --success: #00e676; --danger: #ff1744; --mains-color: #ff9800; }
         body { font-family: 'Segoe UI', sans-serif; background-color: var(--bg); color: var(--text); margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; min-height: 100vh; }
-        .dashboard { display: grid; grid-template-columns: 320px 1fr; gap: 20px; width: 100%; max-width: 1200px; }
+        
+        /* --- LANDING PAGE STYLES --- */
+        .landing-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            width: 100%;
+            max-width: 1000px;
+            margin-top: 50px;
+        }
+
+        .exam-card {
+            background: var(--surface);
+            border: 1px solid #333;
+            border-radius: 15px;
+            padding: 40px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .exam-card:hover {
+            transform: translateY(-5px);
+            border-color: var(--primary);
+            box-shadow: 0 8px 15px rgba(0, 176, 255, 0.2);
+        }
+
+        .exam-card h2 { margin: 0; font-size: 1.5em; color: #fff; }
+        
+        .exam-logo {
+            width: 80px;
+            height: 80px;
+            object-fit: contain;
+            margin-bottom: 15px;
+            display: block;
+        }
+
+        /* --- DASHBOARD STYLES --- */
+        .dashboard-container { display: none; width: 100%; max-width: 1200px; } 
+        
+        .nav-header {
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            border-bottom: 1px solid #333;
+            padding-bottom: 5px;
+        }
+
+        /* UPDATED HOME BUTTON FOR COMPACT SIZE */
+        .home-btn {
+            background: #333; color: #ccc; border: 1px solid #555;
+            width: 60px;  /* Small fixed width to fit "Home" */
+            height: 25px; /* Fixed height as requested */
+            padding: 0;   /* Remove padding to respect strict size */
+            
+            /* Flexbox to center text perfectly in the small box */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            
+            border-radius: 5px; cursor: pointer;
+            font-size: 0.75em; /* Smaller font to fit */
+            transition: all 0.2s;
+        }
+        .home-btn:hover { background: #444; color: white; }
+
+        .dashboard { display: grid; grid-template-columns: 320px 1fr; gap: 20px; width: 100%; }
         
         /* Input Panel */
         .input-panel { background-color: var(--surface); padding: 20px; border-radius: 12px; height: fit-content; border: 1px solid #333; }
         h2 { margin-top: 0; color: var(--primary); }
         label { display: block; margin-top: 10px; font-size: 0.9em; color: #aaa; }
         input, select { width: 100%; padding: 10px; margin-top: 5px; background: #2c2c2c; border: 1px solid #444; color: white; border-radius: 6px; box-sizing: border-box; font-size: 16px; }
-        
-        /* Remarks Input */
         textarea { width: 100%; padding: 10px; margin-top: 5px; background: #2c2c2c; border: 1px solid #444; color: white; border-radius: 6px; box-sizing: border-box; font-size: 14px; resize: vertical; }
-
         button { width: 100%; padding: 12px; margin-top: 20px; background-color: var(--primary); color: black; font-weight: bold; border: none; border-radius: 6px; cursor: pointer; transition: 0.2s; }
         button:hover { opacity: 0.9; }
 
@@ -44,10 +114,8 @@
         th, td { padding: 12px; text-align: left; border-bottom: 1px solid #333; }
         th { color: #888; }
         
-        /* Updated Table Columns */
         .remarks-cell { font-size: 0.85em; color: #aaa; max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .marks-cell { font-weight: bold; color: var(--primary); }
-        
         .remove-row { color: #666; cursor: pointer; font-weight: bold; text-align: center; font-size: 1.2em; padding: 0 10px; }
         .remove-row:hover { color: var(--danger); background: rgba(255, 23, 68, 0.1); border-radius: 4px; }
         
@@ -60,94 +128,136 @@
 </head>
 <body>
 
-    <h1 style="text-align: center;">☁️ Cloud Test Tracker Pro</h1>
-
-    <div class="dashboard">
+    <!-- VIEW 1: LANDING PAGE -->
+    <div id="landing-view">
+        <h1 style="text-align: center; margin-bottom: 10px;">🏆 Select Your Target Exam</h1>
+        <p style="text-align: center; color: #888;">Track your progress separately for each goal.</p>
         
-        <div class="input-panel">
-            <h2>Add Result</h2>
+        <div class="landing-grid">
+            <div class="exam-card" onclick="openTracker('SBI PO / IBPS PO')">
+                <img src="sbi_ibps_po.png" class="exam-logo" alt="PO Logo" onerror="this.style.display='none';this.nextElementSibling.style.display='block'">
+                <span class="exam-logo" style="display:none; font-size:3em;">👔</span>
+                <h2>SBI PO / IBPS PO</h2>
+            </div>
             
-            <label>Date</label>
-            <input type="date" id="testDate">
-
-            <label>Exam Type</label>
-            <select id="examType" onchange="updateSubjects()">
-                <option value="pre">Pre (Preliminary)</option>
-                <option value="mains">Mains</option>
-            </select>
-
-            <label>Subject</label>
-            <select id="subjectSelect"></select>
-
-            <label>Test Name</label>
-            <input type="text" id="testName" placeholder="e.g., Mock 01">
-            
-            <div style="display: flex; gap: 10px;">
-                <div style="flex:1">
-                    <label>Score</label>
-                    <input type="number" id="myScore" placeholder="0">
-                </div>
-                <div style="flex:1">
-                    <label>Total</label>
-                    <input type="number" id="totalMarks" value="100">
-                </div>
+            <div class="exam-card" onclick="openTracker('SBI JA / IBPS CSA')">
+                <img src="sbi_ibps_clerk.png" class="exam-logo" alt="Clerk Logo" onerror="this.style.display='none';this.nextElementSibling.style.display='block'">
+                <span class="exam-logo" style="display:none; font-size:3em;">🏦</span>
+                <h2>SBI JA / IBPS Clerk</h2>
             </div>
 
-            <label>Remarks / Notes</label>
-            <textarea id="remarks" rows="2" placeholder="e.g. Silly mistake in algebra..."></textarea>
+            <div class="exam-card" onclick="openTracker('RRB PO')">
+                <img src="rrb_po.png" class="exam-logo" alt="RRB PO Logo" onerror="this.style.display='none';this.nextElementSibling.style.display='block'">
+                <span class="exam-logo" style="display:none; font-size:3em;">🚜</span>
+                <h2>RRB PO</h2>
+            </div>
 
-            <button onclick="addScoreToCloud()">Save Result 🔒</button>
+            <div class="exam-card" onclick="openTracker('RRB CLERK')">
+                <img src="rrb_clerk.png" class="exam-logo" alt="RRB Clerk Logo" onerror="this.style.display='none';this.nextElementSibling.style.display='block'">
+                <span class="exam-logo" style="display:none; font-size:3em;">🌾</span>
+                <h2>RRB CLERK</h2>
+                <div style="font-size:0.8em; color:#00e676; margin-top:5px; display: none;">(Old Data Here)</div>
+            </div>
+
+            <div class="exam-card" onclick="openTracker('INSURANCE EXAM')">
+                <img src="insurance.png" class="exam-logo" alt="Insurance Logo" onerror="this.style.display='none';this.nextElementSibling.style.display='block'">
+                <span class="exam-logo" style="display:none; font-size:3em;">🛡️</span>
+                <h2>INSURANCE EXAM</h2>
+            </div>
+        </div>
+    </div>
+
+    <!-- VIEW 2: DASHBOARD (Initially Hidden) -->
+    <div id="dashboard-view" class="dashboard-container">
+        <div class="nav-header">
+            <button class="home-btn" onclick="goHome()">Home</button>
+            <h2 id="dashboard-title" style="margin:0; color:white;">Exam Tracker</h2>
+            <div style="width: 100px;"></div> <!-- Spacer for centering -->
         </div>
 
-        <div class="display-panel">
-            
-            <div class="tab-container">
-                <button class="tab-btn active" onclick="switchTab('pre')" id="tab-pre">Pre Dashboard</button>
-                <button class="tab-btn" onclick="switchTab('mains')" id="tab-mains">Mains Dashboard</button>
+        <div class="dashboard">
+            <div class="input-panel">
+                <h2>Add Result</h2>
+                <label>Date</label>
+                <input type="date" id="testDate">
+
+                <label>Exam Type</label>
+                <select id="examType" onchange="updateSubjects()">
+                    <option value="pre">Pre (Preliminary)</option>
+                    <option value="mains">Mains</option>
+                </select>
+
+                <label>Subject</label>
+                <select id="subjectSelect"></select>
+
+                <label>Test Name</label>
+                <input type="text" id="testName" placeholder="e.g., Mock 01">
+                
+                <div style="display: flex; gap: 10px;">
+                    <div style="flex:1">
+                        <label>Score</label>
+                        <input type="number" id="myScore" placeholder="0">
+                    </div>
+                    <div style="flex:1">
+                        <label>Total</label>
+                        <input type="number" id="totalMarks" value="100">
+                    </div>
+                </div>
+
+                <label>Remarks / Notes</label>
+                <textarea id="remarks" rows="2" placeholder="e.g. Silly mistake in algebra..."></textarea>
+
+                <button onclick="addScoreToCloud()">Save Result 🔒</button>
             </div>
 
-            <div class="stats-grid">
-                <div class="stat-card">
-                    <div class="stat-value" id="avg-score" style="color:var(--primary)">0%</div>
-                    <div class="stat-label">Average %</div>
+            <div class="display-panel">
+                <div class="tab-container">
+                    <button class="tab-btn active" onclick="switchTab('pre')" id="tab-pre">Pre Dashboard</button>
+                    <button class="tab-btn" onclick="switchTab('mains')" id="tab-mains">Mains Dashboard</button>
                 </div>
-                <div class="stat-card">
-                    <div class="stat-value" id="total-tests" style="color:white">0</div>
-                    <div class="stat-label">Tests</div>
+
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-value" id="avg-score" style="color:var(--primary)">0%</div>
+                        <div class="stat-label">Average %</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="total-tests" style="color:white">0</div>
+                        <div class="stat-label">Tests</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="trend" style="color:gray">-</div>
+                        <div class="stat-label">Trend</div>
+                    </div>
                 </div>
-                <div class="stat-card">
-                    <div class="stat-value" id="trend" style="color:gray">-</div>
-                    <div class="stat-label">Trend</div>
+
+                <div id="loader">Loading data...</div>
+                <div id="charts-grid" class="charts-grid"></div>
+
+                <button id="toggleHistBtn" class="btn-outline" onclick="toggleHistory()">🔒 View Detailed History</button>
+
+                <div id="historySection" class="history-container hidden">
+                    <h3>History</h3>
+                    <table id="historyTable">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Subject</th>
+                                <th>Test</th>
+                                <th>Marks</th>
+                                <th>%</th>
+                                <th>Remarks</th>
+                                <th>Del</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
                 </div>
-            </div>
-
-            <div id="loader">Loading data from Google...</div>
-            <div id="charts-grid" class="charts-grid"></div>
-
-            <button id="toggleHistBtn" class="btn-outline" onclick="toggleHistory()">🔒 View Detailed History</button>
-
-            <div id="historySection" class="history-container hidden">
-                <h3>History</h3>
-                <table id="historyTable">
-                    <thead>
-                        <tr>
-                            <th>Date</th>
-                            <th>Subject</th>
-                            <th>Test</th>
-                            <th>Marks</th> <!-- New Column -->
-                            <th>%</th>
-                            <th>Remarks</th>
-                            <th>Del</th>
-                        </tr>
-                    </thead>
-                    <tbody></tbody>
-                </table>
             </div>
         </div>
     </div>
 
     <script>
-        // --- 1. YOUR FIREBASE KEYS (FIXED) ---
         const firebaseConfig = {
             apiKey: "AIzaSyD3FkIKeAb__QsJYk3CKiosLZb8IvT56Mg",
             authDomain: "test-tracker-f9e01.firebaseapp.com",
@@ -157,56 +267,77 @@
             appId: "1:573749875954:web:bf6d0438ab584299462c6b"
         };
 
-        // --- 2. INITIALIZE FIREBASE ---
         if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); }
         const db = firebase.firestore();
 
-        // --- 3. APP VARIABLES ---
         let testData = [];
         let chartInstances = [];
         let currentTab = 'pre';
-        
+        let currentCategory = ''; 
+        let unsubscribe = null; 
+
         document.getElementById('testDate').valueAsDate = new Date();
 
         const subjects = {
             pre: ["Full Mock", "Math", "English", "Reasoning"],
-            mains: ["Full Mock", "Math", "English", "GK", "Reasoning"]
+            mains: ["Full Mock", "Math", "English", "GK", "Reasoning", "Insurance", "Computer"]
         };
 
-        // UPDATED COLORS
         const subjectColors = {
             "Full Mock": { border: "#00b0ff", bg: "rgba(0, 176, 255, 0.1)" }, 
             "Math": { border: "#ff4081", bg: "rgba(255, 64, 129, 0.1)" }, 
             "English": { border: "#00e676", bg: "rgba(0, 230, 118, 0.1)" },
-            "Reasoning": { border: "#FFD700", bg: "rgba(255, 215, 0, 0.1)" }, // Yellow
-            "GK": { border: "#FF0000", bg: "rgba(255, 0, 0, 0.1)" } // Red
+            "Reasoning": { border: "#FFD700", bg: "rgba(255, 215, 0, 0.1)" },
+            "GK": { border: "#FF0000", bg: "rgba(255, 0, 0, 0.1)" },
+            "Insurance": { border: "#9C27B0", bg: "rgba(156, 39, 176, 0.1)" },
+            "Computer": { border: "#00BCD4", bg: "rgba(0, 188, 212, 0.1)" }
         };
 
-        // --- 4. REAL-TIME LISTENER ---
+        function openTracker(category) {
+            currentCategory = category;
+            document.getElementById('landing-view').style.display = 'none';
+            document.getElementById('dashboard-view').style.display = 'block';
+            document.getElementById('dashboard-title').innerText = category + " Tracker";
+            initApp(); 
+        }
+
+        function goHome() {
+            if(unsubscribe) unsubscribe(); 
+            document.getElementById('dashboard-view').style.display = 'none';
+            document.getElementById('landing-view').style.display = 'block';
+            currentCategory = '';
+        }
+
         function initApp() {
             updateSubjects();
             document.getElementById('loader').style.display = "block";
             
-            db.collection("scores").orderBy("date", "asc").onSnapshot((snapshot) => {
+            unsubscribe = db.collection("scores").orderBy("date", "asc").onSnapshot((snapshot) => {
                 testData = [];
                 snapshot.forEach((doc) => {
-                    testData.push({ id: doc.id, ...doc.data() });
+                    const data = { id: doc.id, ...doc.data() };
+                    
+                    if (currentCategory === 'RRB CLERK') {
+                        if (!data.examCategory || data.examCategory === 'RRB CLERK') {
+                            testData.push(data);
+                        }
+                    } else {
+                        if (data.examCategory === currentCategory) {
+                            testData.push(data);
+                        }
+                    }
                 });
                 
                 document.getElementById('loader').style.display = "none";
                 updateUI(); 
             }, (error) => {
-                console.error("Error getting documents: ", error);
+                console.error("Error:", error);
             });
         }
 
-        // --- 5. ADD DATA ---
         function addScoreToCloud() {
             const pwd = prompt("Enter password to save data:");
-            if (pwd !== "testbook") {
-                alert("Wrong password! Data not saved.");
-                return; 
-            }
+            if (pwd !== "testbook") { alert("Wrong password!"); return; }
 
             const date = document.getElementById('testDate').value;
             const type = document.getElementById('examType').value;
@@ -221,6 +352,7 @@
             const percentage = ((score / total) * 100).toFixed(2);
 
             db.collection("scores").add({
+                examCategory: currentCategory, 
                 date: date,
                 type: type,
                 subject: subject,
@@ -235,40 +367,27 @@
                 document.getElementById('testName').value = "";
                 document.getElementById('myScore').value = "";
                 document.getElementById('remarks').value = "";
-                alert("Saved Successfully! ✅");
-            })
-            .catch((error) => {
-                alert("Error saving: " + error.message);
+                alert("Saved to " + currentCategory + "! ✅");
             });
         }
 
-        // --- 6. DELETE ---
         function deleteScore(docId) {
             const pwd = prompt("Enter 'admin' to delete:");
-            if(pwd === "admin") {
-                db.collection("scores").doc(docId).delete();
-            } else if (pwd !== null) {
-                alert("Wrong password!");
-            }
+            if(pwd === "admin") { db.collection("scores").doc(docId).delete(); }
         }
 
-        // --- UI FUNCTIONS ---
         function toggleHistory() {
             const section = document.getElementById('historySection');
             const btn = document.getElementById('toggleHistBtn');
-
             if (section.classList.contains('hidden')) {
-                const pwd = prompt("Enter Password to view history:");
-                if (pwd === "admin") {
+                if (prompt("Enter Password:") === "admin") {
                     section.classList.remove('hidden');
                     btn.innerText = "🔓 Hide History";
-                    btn.style.borderColor = "var(--success)";
                     btn.style.color = "var(--success)";
-                } else if (pwd !== null) { alert("Wrong Password"); }
+                }
             } else {
                 section.classList.add('hidden');
                 btn.innerText = "🔒 View Detailed History";
-                btn.style.borderColor = "#444";
                 btn.style.color = "#aaa";
             }
         }
@@ -302,8 +421,6 @@
             filteredData.forEach(item => {
                 totalPercent += parseFloat(item.percentage);
                 const color = subjectColors[item.subject] ? subjectColors[item.subject].border : '#fff';
-                
-                // Added "Marks" Column Here
                 const row = `<tr>
                     <td style="color:#666; font-size:0.8em">${item.date}</td>
                     <td style="color:${color}">${item.subject}</td>
@@ -349,7 +466,6 @@
                     type: 'line',
                     data: {
                         labels: subData.map(d => d.name),
-                        // Pass FULL data object to access marks in tooltip
                         raw_data: subData, 
                         datasets: [{
                             label: '%', data: subData.map(d => d.percentage),
@@ -358,23 +474,18 @@
                         }]
                     },
                     options: { 
-                        responsive: true, 
-                        maintainAspectRatio: false, 
+                        responsive: true, maintainAspectRatio: false, 
                         scales: { y: { beginAtZero: true, max: 100, grid: {color:'#333'} }, x: { grid: {color:'#333'} } }, 
                         plugins: { 
                             legend: {display: false},
-                            
-                            // UPDATED TOOLTIP
                             tooltip: {
                                 callbacks: {
                                     label: function(context) {
-                                        // Get the raw data object for this point
                                         const rawItem = context.chart.data.raw_data[context.dataIndex];
                                         return `${context.raw}% | ${rawItem.score}/${rawItem.total} Marks`;
                                     }
                                 }
                             },
-
                             annotation: {
                                 annotations: {
                                     line1: {
@@ -388,8 +499,6 @@
                 }));
             });
         }
-
-        window.onload = initApp;
     </script>
 </body>
 </html>
